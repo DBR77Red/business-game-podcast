@@ -5,6 +5,7 @@ import { serve } from '@hono/node-server'
 import { storyRoute } from './routes/story.js'
 import { transcribeRoute } from './routes/transcribe.js'
 import { turnRoute } from './routes/turn.js'
+import { ttsRoute } from './routes/tts.js'
 
 export const app = new Hono()
 
@@ -22,6 +23,7 @@ app.use(
 app.route('/api/story', storyRoute)
 app.route('/api/transcribe', transcribeRoute)
 app.route('/api/turn', turnRoute)
+app.route('/api/tts', ttsRoute)
 
 const port = Number(process.env.PORT ?? 3001)
 
