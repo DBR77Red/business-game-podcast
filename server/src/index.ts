@@ -1,4 +1,10 @@
-import 'dotenv/config'
+import { config as loadDotenv } from 'dotenv'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+// Load the repo-root .env regardless of where the server is invoked from.
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+loadDotenv({ path: path.resolve(__dirname, '../../.env') })
+
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { serve } from '@hono/node-server'
