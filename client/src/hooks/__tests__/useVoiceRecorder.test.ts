@@ -30,6 +30,7 @@ beforeEach(() => {
     },
   })
   global.fetch = vi.fn().mockResolvedValue({
+    ok: true,
     json: () => Promise.resolve({ transcript: 'my answer' }),
   }) as unknown as typeof fetch
 })

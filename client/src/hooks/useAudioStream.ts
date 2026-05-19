@@ -118,6 +118,8 @@ export function useAudioStream() {
 
   const playTurn = useCallback(
     (body: PlayTurnBody): PlayHandle => {
+      // Abort any in-flight turn before starting a new one.
+      abortRef.current?.abort()
       abortRef.current = new AbortController()
 
       let resolveState!: (s: TurnState) => void

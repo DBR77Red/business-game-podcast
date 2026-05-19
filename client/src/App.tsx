@@ -1,122 +1,55 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { Orb, type AgentState } from './components/ui/orb'
 
-function App() {
-  const [count, setCount] = useState(0)
-
+/**
+ * Dev-only preview gallery. Components appear here as their tasks land.
+ * Task 16 replaces this entire file with the real <BroadcastStudio /> + <EndingScreen /> routing.
+ */
+export default function App() {
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="min-h-screen w-full bg-[#0c0a09] text-stone-200 flex flex-col items-center gap-12 py-12 px-6">
+      <header className="text-center">
+        <p className="text-xs tracking-[0.3em] uppercase text-stone-500">Business Game</p>
+        <h1 className="text-2xl font-semibold tracking-wide mt-1">Preview Gallery</h1>
+        <p className="text-stone-500 text-sm mt-2 max-w-md">
+          Dev-only. Components appear here as they're built. Replaced by the real game UI in Task 16.
+        </p>
+      </header>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <HostOrbPreview />
+    </div>
   )
 }
 
-export default App
+function HostOrbPreview() {
+  const [agentState, setAgentState] = useState<AgentState>(null)
+
+  return (
+    <section className="flex flex-col items-center gap-4 w-full max-w-md">
+      <h2 className="text-xs tracking-[0.25em] uppercase text-stone-500">3D Orb (host voice visual)</h2>
+      <div className="w-72 h-72">
+        <Orb
+          colors={['#fbbf24', '#ef4444']}
+          agentState={agentState}
+          volumeMode="auto"
+        />
+      </div>
+      <div className="flex flex-wrap gap-2 justify-center">
+        {([null, 'listening', 'thinking', 'talking'] as const).map((state) => (
+          <button
+            key={state ?? 'idle'}
+            onClick={() => setAgentState(state)}
+            className={[
+              'px-3 py-1.5 rounded-md text-xs tracking-wider uppercase transition-colors',
+              agentState === state
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                : 'border border-stone-700 text-stone-400 hover:border-stone-500 hover:text-stone-200',
+            ].join(' ')}
+          >
+            {state ?? 'idle'}
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
