@@ -6,7 +6,14 @@ import { StatusIndicator } from './StatusIndicator'
 import { HostOrb } from './HostOrb'
 import { MicButton } from './MicButton'
 import { fetchStoryConfig } from '../lib/fetchStory'
-import type { AppState, EndingPath, GameState } from '../types'
+import type { AppState, EndingPath, GameState, Segment } from '../types'
+
+const segmentToPath: Partial<Record<Segment, EndingPath>> = {
+  ENDING_1: 'breakout',
+  ENDING_2: 'solid-win',
+  ENDING_3: 'partial',
+  ENDING_4: 'setback',
+}
 
 interface Props {
   onEnding: (path: EndingPath, replyText: string, participantVoiceId: string) => void
@@ -39,7 +46,10 @@ export function BroadcastStudio({ onEnding }: Props) {
         applyTurn(state, playerReply, narration)
 
         if (state.segment.startsWith('ENDING')) {
-          const path = (state.path ?? 'setback') as EndingPath
+          // Derive path from segment as source of truth — Claude may omit
+          // `path` in the state JSON, and a null default would mislabel
+          // every ending as Setback.
+          const path = (state.path ?? segmentToPath[state.segment] ?? 'setback') as EndingPath
           const replyText = story.participant.replyTexts[path]
           onEnding(path, replyText, story.participant.voiceId)
           return

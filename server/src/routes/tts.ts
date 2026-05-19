@@ -19,13 +19,21 @@ ttsRoute.post('/', async (c) => {
   c.header('Content-Type', 'audio/mpeg')
 
   return stream(c, async (s) => {
-    const audioStream = await getClient().textToSpeech.stream(body.voiceId!, {
-      text: body.text!,
-      modelId: 'eleven_turbo_v2_5',
-      outputFormat: 'mp3_44100_128',
-    })
-    for await (const chunk of audioStream) {
-      await s.write(chunk as Uint8Array)
+    try {
+      const audioStream = await getClient().textToSpeech.stream(body.voiceId!, {
+        text: body.text!,
+        modelId: 'eleven_turbo_v2_5',
+        outputFormat: 'mp3_44100_128',
+      })
+      for await (const chunk of audioStream) {
+        await s.write(chunk as Uint8Array)
+      }
+    } catch (err) {
+      // The headers are already flushed by Hono's stream(), so we can't switch
+      // status codes mid-flight. Log so Railway captures the failure; the
+      // client will see a truncated mp3 and the audio.play() call will likely
+      // no-op or play a fragment. This is the documented degraded-mode UX.
+      console.error('tts route error:', err)
     }
   })
 })
