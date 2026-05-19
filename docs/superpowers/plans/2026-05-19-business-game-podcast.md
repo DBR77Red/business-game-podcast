@@ -4,37 +4,55 @@
 
 **Goal:** Build a voice-only interactive podcast game where a player is interviewed as a business expert, helps a live participant with their problem, and receives a verdict a month later — all through ElevenLabs audio and Claude narration.
 
-**Architecture:** React + Vite + Tailwind frontend communicates with an Express backend that proxies all ElevenLabs (TTS/STT) and Claude API calls. The frontend records audio, sends it to the backend for transcription, receives Claude's narration text, then plays it back via streamed TTS. Game state lives in `useGameEngine` on the frontend.
+**Architecture:** React + Vite + Tailwind frontend communicates with an Express backend that proxies all ElevenLabs (TTS/STT) and Claude API calls. The frontend records audio, sends it to the backend for transcription, receives Claude's narration text, then plays it back via streamed TTS. Game state lives in `useGameEngine` on the frontend. The host voice is visualised by the pre-existing 3D `Orb` (React Three Fiber) which reacts to `agentState` and audio amplitude.
 
-**Tech Stack:** React 18, Vite 5, Tailwind CSS 3, Express.js, ElevenLabs SDK (`elevenlabs`), Anthropic SDK (`@anthropic-ai/sdk`), Vitest, React Testing Library, Railway
+**Tech Stack:** React 19, Vite 8, Tailwind CSS v4 (via `@tailwindcss/vite`), shadcn/ui style "base-nova" on `@base-ui/react`, React Three Fiber + Three.js (for the existing `Orb`), Express.js, ElevenLabs SDK (`elevenlabs`), Anthropic SDK (`@anthropic-ai/sdk`), Vitest, React Testing Library, Railway
+
+**Pre-existing scaffold (preserved, not rebuilt):** The repo root already contains a working Vite + React 19 + Tailwind v4 + shadcn scaffold with `Orb`, `Waveform`, and `Button` components under `src/components/ui/`. Task 1 **restructures** these files into a `client/` directory rather than scaffolding fresh.
 
 ---
 
 ## File Map
 
+After Task 1 the layout is:
+
 ```
 D:\VibeCoding_Projects\11Labs-Demo\
-├── client/
+├── client/                          # moved from repo root
 │   ├── src/
-│   │   ├── types.ts
+│   │   ├── types.ts                 # NEW
 │   │   ├── engine/
-│   │   │   └── storyConfig.ts
-│   │   ├── hooks/
+│   │   │   └── storyConfig.ts       # NEW
+│   │   ├── hooks/                   # NEW
 │   │   │   ├── useGameEngine.ts
 │   │   │   ├── useVoiceRecorder.ts
 │   │   │   └── useAudioPlayer.ts
 │   │   ├── components/
-│   │   │   ├── StatusIndicator.tsx
-│   │   │   ├── AudioVisualizer.tsx
-│   │   │   ├── MicButton.tsx
-│   │   │   ├── BroadcastStudio.tsx
-│   │   │   └── EndingScreen.tsx
-│   │   └── App.tsx
-│   ├── index.html
-│   ├── vite.config.ts
-│   ├── tailwind.config.ts
-│   └── package.json
-├── server/
+│   │   │   ├── StatusIndicator.tsx  # NEW
+│   │   │   ├── HostOrb.tsx          # NEW — wrapper around the existing Orb
+│   │   │   ├── MicButton.tsx        # NEW
+│   │   │   ├── BroadcastStudio.tsx  # NEW
+│   │   │   ├── EndingScreen.tsx     # NEW
+│   │   │   └── ui/                  # PRESERVED
+│   │   │       ├── button.tsx
+│   │   │       ├── orb.tsx
+│   │   │       └── waveform.tsx
+│   │   ├── lib/utils.ts             # PRESERVED
+│   │   ├── assets/                  # PRESERVED
+│   │   ├── App.tsx                  # REWRITTEN in Task 17
+│   │   ├── main.tsx                 # PRESERVED
+│   │   └── index.css                # PRESERVED (Tailwind v4 @theme)
+│   ├── index.html                   # PRESERVED
+│   ├── vite.config.ts               # MODIFIED (add proxy + test)
+│   ├── tsconfig.json                # PRESERVED
+│   ├── tsconfig.app.json            # PRESERVED
+│   ├── tsconfig.node.json           # PRESERVED
+│   ├── eslint.config.js             # PRESERVED
+│   ├── components.json              # PRESERVED (shadcn config)
+│   ├── public/                      # PRESERVED
+│   ├── .env                         # NEW
+│   └── package.json                 # PRESERVED (now under client/)
+├── server/                          # NEW
 │   ├── src/
 │   │   ├── index.ts
 │   │   ├── routes/
@@ -51,66 +69,73 @@ D:\VibeCoding_Projects\11Labs-Demo\
 │   │   └── narrate.test.ts
 │   ├── tsconfig.json
 │   └── package.json
-├── .env
-├── .gitignore
-├── railway.json
-└── package.json
+├── .env                             # NEW
+├── .env.example                     # NEW
+├── .gitignore                       # MODIFIED
+├── railway.json                     # NEW (Task 19)
+├── CLAUDE.md                        # PRESERVED
+├── README.md                        # PRESERVED
+├── docs/                            # PRESERVED
+└── package.json                     # NEW root (concurrently)
 ```
+
+> **Tailwind note:** This repo uses Tailwind **v4**, configured via `@tailwindcss/vite` and an `@theme inline { ... }` block in `client/src/index.css`. There is no `tailwind.config.ts`. The `@tailwind base/components/utilities` directives from v3 do **not** apply.
 
 ---
 
-## Task 1: Project Scaffold & Monorepo Setup
+## Task 1: Restructure into Monorepo (client/ + server/)
 
-**Files:**
-- Create: `package.json` (root)
-- Create: `client/` (Vite scaffold)
+The repo root already contains a working Vite + React 19 + Tailwind v4 + shadcn scaffold. This task **moves** that scaffold into `client/` and creates a fresh `server/` directory beside it — it does **not** run `npm create vite`.
+
+**Files affected:**
+- Move: root scaffold (`src/`, `public/`, `index.html`, `package.json`, `package-lock.json`, `vite.config.ts`, `tsconfig*.json`, `eslint.config.js`, `components.json`) → `client/`
+- Modify: `client/vite.config.ts` (add `/api` proxy)
+- Modify: `.gitignore` (add server/dist, client/dist, .env)
 - Create: `server/package.json`
 - Create: `server/tsconfig.json`
-- Create: `client/vite.config.ts`
-- Create: `client/tailwind.config.ts`
-- Create: `.env`
-- Create: `.gitignore`
+- Create: `server/src/index.ts` (deferred — Task 4 fills it; for now create an empty placeholder so `tsx watch` doesn't crash)
+- Create: root `package.json`
+- Create: `.env` and `.env.example`
 
-- [ ] **Step 1: Scaffold the client with Vite**
+- [ ] **Step 1: Move root scaffold into `client/`**
 
-Run from `D:\VibeCoding_Projects\11Labs-Demo`:
+From `D:\VibeCoding_Projects\11Labs-Demo`, in PowerShell:
+```powershell
+New-Item -ItemType Directory client
+Move-Item src, public, index.html, vite.config.ts, tsconfig.json, tsconfig.app.json, tsconfig.node.json, eslint.config.js, components.json, package.json, package-lock.json client/
+```
+
+Do **not** move `node_modules/` — delete it instead and reinstall under `client/`:
+```powershell
+Remove-Item -Recurse -Force node_modules
+```
+
+`README.md`, `CLAUDE.md`, `.gitignore`, `.git/`, and `docs/` stay at the repo root.
+
+- [ ] **Step 2: Reinstall client dependencies**
+
 ```bash
-npm create vite@latest client -- --template react-ts
 cd client && npm install
-npm install -D tailwindcss postcss autoprefixer
-npx tailwindcss init -p
-npm install
 ```
 
-- [ ] **Step 2: Configure Tailwind**
+Expected: `client/node_modules/` populated. No errors.
 
-Replace `client/tailwind.config.ts`:
-```typescript
-import type { Config } from 'tailwindcss'
+- [ ] **Step 3: Update `client/vite.config.ts` — add `/api` proxy**
 
-export default {
-  content: ['./index.html', './src/**/*.{ts,tsx}'],
-  theme: { extend: {} },
-  plugins: [],
-} satisfies Config
-```
-
-Add to `client/src/index.css` (replace all content):
-```css
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-```
-
-- [ ] **Step 3: Configure Vite proxy**
-
-Replace `client/vite.config.ts`:
+Replace `client/vite.config.ts` with:
 ```typescript
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+import path from 'path'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
   server: {
     proxy: {
       '/api': 'http://localhost:3001',
@@ -119,11 +144,19 @@ export default defineConfig({
 })
 ```
 
-- [ ] **Step 4: Set up the server**
+- [ ] **Step 4: Rename `client/package.json` name field**
 
-Run from `D:\VibeCoding_Projects\11Labs-Demo`:
+Open `client/package.json` and change the `"name"` field:
+```json
+"name": "business-game-podcast-client",
+```
+
+(Vitest scripts are added in Task 3 — leave `"scripts"` as-is for now.)
+
+- [ ] **Step 5: Create `server/` directory and `server/package.json`**
+
 ```bash
-mkdir server && cd server
+mkdir server
 ```
 
 Create `server/package.json`:
@@ -131,6 +164,7 @@ Create `server/package.json`:
 {
   "name": "business-game-podcast-server",
   "version": "1.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -159,11 +193,13 @@ Create `server/package.json`:
 }
 ```
 
-Run: `cd server && npm install`
+Run:
+```bash
+cd server && npm install
+```
 
-- [ ] **Step 5: Server TypeScript config**
+- [ ] **Step 6: Create `server/tsconfig.json`**
 
-Create `server/tsconfig.json`:
 ```json
 {
   "compilerOptions": {
@@ -180,17 +216,36 @@ Create `server/tsconfig.json`:
 }
 ```
 
-- [ ] **Step 6: Root package.json**
+- [ ] **Step 7: Create placeholder `server/src/index.ts`**
 
-Create `package.json` at project root:
+```bash
+mkdir server/src
+```
+
+Create `server/src/index.ts`:
+```typescript
+// Placeholder — fully implemented in Task 4.
+console.log('server starting…')
+```
+
+Task 4 replaces this with the real Express app.
+
+- [ ] **Step 8: Create root `package.json`**
+
+At repo root:
 ```json
 {
   "name": "business-game-podcast",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"npm run dev --prefix client\" \"npm run dev --prefix server\"",
+    "dev": "concurrently \"npm:dev:client\" \"npm:dev:server\"",
+    "dev:client": "npm run dev --prefix client",
+    "dev:server": "npm run dev --prefix server",
+    "build:client": "npm run build --prefix client",
+    "build:server": "npm run build --prefix server",
+    "test:client": "npm test --prefix client",
     "test:server": "npm test --prefix server",
-    "test:client": "npm test --prefix client"
+    "test": "npm run test:client && npm run test:server"
   },
   "devDependencies": {
     "concurrently": "^9.0.0"
@@ -198,11 +253,14 @@ Create `package.json` at project root:
 }
 ```
 
-Run: `npm install` (at root)
+Run:
+```bash
+npm install
+```
 
-- [ ] **Step 7: Environment file**
+- [ ] **Step 9: Create `.env` and `.env.example`**
 
-Create `.env` at project root:
+Create `.env` at repo root (real keys go here — never committed):
 ```
 ELEVENLABS_API_KEY=your_key_here
 ANTHROPIC_API_KEY=your_key_here
@@ -211,32 +269,75 @@ PARTICIPANT_VOICE_ID=21m00Tcm4TlvDq8ikWAM
 PORT=3001
 ```
 
-Note: `HOST_VOICE_ID` uses ElevenLabs' "Daniel" voice. `PARTICIPANT_VOICE_ID` uses "Rachel". Replace with actual voice IDs from your ElevenLabs dashboard at elevenlabs.io/voice-library.
-
-- [ ] **Step 8: Gitignore**
-
-Create `.gitignore`:
+Create `.env.example` at repo root (committed; documents required vars):
 ```
+ELEVENLABS_API_KEY=
+ANTHROPIC_API_KEY=
+HOST_VOICE_ID=onwK4e9ZLuTAKqWW03F9
+PARTICIPANT_VOICE_ID=21m00Tcm4TlvDq8ikWAM
+PORT=3001
+```
+
+Note: `HOST_VOICE_ID` is ElevenLabs' "Daniel". `PARTICIPANT_VOICE_ID` is "Rachel". Swap for your own voices from elevenlabs.io/voice-library if desired.
+
+- [ ] **Step 10: Update `.gitignore`**
+
+Replace `.gitignore` at repo root with:
+```
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies
 node_modules/
+
+# Builds
 dist/
+dist-ssr/
+
+# Env
 .env
+.env.local
 *.local
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Superpowers
 .superpowers/
 ```
 
-- [ ] **Step 9: Verify dev servers start**
+- [ ] **Step 11: Verify dev servers start**
 
+From repo root:
 ```bash
 npm run dev
 ```
 
-Expected: Client on http://localhost:5173, Server on http://localhost:3001 (will error until index.ts exists — that's fine for now).
+Expected:
+- Client logs `VITE v8.x ready` and serves http://localhost:5173
+- Server logs `server starting…` (placeholder from Step 7)
 
-- [ ] **Step 10: Commit**
+Press `Ctrl+C` to stop both.
+
+- [ ] **Step 12: Commit**
 
 ```bash
-git add client/ server/package.json server/tsconfig.json package.json .gitignore .env.example
-git commit -m "feat: scaffold monorepo with client (React+Vite+Tailwind) and server (Express+TS)"
+git add -A
+git commit -m "feat: restructure into monorepo (client + server)"
 ```
 
 ---
@@ -332,35 +433,46 @@ git commit -m "feat: add shared TypeScript types for game state and API contract
 - [ ] **Step 1: Install Vitest in client**
 
 ```bash
-cd client && npm install -D vitest @vitest/ui @testing-library/react @testing-library/jest-dom jsdom
+cd client && npm install -D vitest @vitest/ui @testing-library/react @testing-library/jest-dom @testing-library/user-event jsdom
 ```
 
-Add to `client/package.json` scripts:
+Add to `client/package.json` scripts (alongside existing `dev`, `build`, `lint`, `preview`):
 ```json
 "test": "vitest run",
 "test:watch": "vitest"
 ```
 
-Add vitest config to `client/vite.config.ts`:
+Vitest reads its config from `vite.config.ts`. Replace `client/vite.config.ts` (this **extends** the version from Task 1 Step 3 with a `test` block and `///` triple-slash reference for types):
 ```typescript
+/// <reference types="vitest" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+import path from 'path'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
   server: {
-    proxy: { '/api': 'http://localhost:3001' },
+    proxy: {
+      '/api': 'http://localhost:3001',
+    },
   },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test-setup.ts'],
+    globals: false,
   },
 })
 ```
 
 Create `client/src/test-setup.ts`:
 ```typescript
-import '@testing-library/jest-dom'
+import '@testing-library/jest-dom/vitest'
 ```
 
 - [ ] **Step 2: Write the failing test**
@@ -806,9 +918,6 @@ git commit -m "feat: add POST /api/speak with ElevenLabs TTS audio streaming"
 
 Create `server/src/prompts/hostSystemPrompt.ts`:
 ```typescript
-import type { GameState } from './types.js'
-
-// Re-declare locally to avoid circular dep — server doesn't import from client
 export interface ServerGameState {
   segment: string
   score: number
@@ -1503,69 +1612,61 @@ git commit -m "feat: add StatusIndicator component with ON AIR / YOUR TURN / STA
 
 ---
 
-## Task 13: AudioVisualizer Component
+## Task 13: HostOrb Component (wraps the existing 3D Orb)
+
+The repo already contains `client/src/components/ui/orb.tsx` — a React Three Fiber 3D orb that accepts `agentState: "thinking" | "listening" | "talking" | null` and animates accordingly. This task adds a thin `HostOrb` wrapper that maps our `AppState` to the orb's `AgentState` and supplies broadcast-studio colors.
 
 **Files:**
-- Create: `client/src/components/AudioVisualizer.tsx`
+- Create: `client/src/components/HostOrb.tsx`
 
-- [ ] **Step 1: Implement the component**
+**Why no Vitest test?** The Orb uses WebGL via R3F/Three.js, which jsdom can't render. Smoke-testing the import would only verify TypeScript, not behaviour. Visual verification happens in Task 18 (manual smoke test).
 
-Create `client/src/components/AudioVisualizer.tsx`:
+- [ ] **Step 1: Implement `HostOrb.tsx`**
+
+Create `client/src/components/HostOrb.tsx`:
 ```typescript
-import { useEffect, useRef } from 'react'
+import { Orb, type AgentState } from './ui/orb'
+import type { AppState } from '../types'
 
-interface Props {
-  isActive: boolean
-  barCount?: number
+const appStateToAgent: Record<AppState, AgentState> = {
+  IDLE: null,
+  NARRATOR_SPEAKING: 'talking',
+  PLAYER_TURN: 'listening',
+  PROCESSING: 'thinking',
+  ENDING: 'talking',
 }
 
-export function AudioVisualizer({ isActive, barCount = 12 }: Props) {
-  const barsRef = useRef<(HTMLDivElement | null)[]>([])
-  const frameRef = useRef<number>(0)
+interface Props {
+  appState: AppState
+  className?: string
+}
 
-  useEffect(() => {
-    if (!isActive) {
-      barsRef.current.forEach((bar) => {
-        if (bar) bar.style.height = '4px'
-      })
-      return
-    }
-
-    const animate = () => {
-      barsRef.current.forEach((bar) => {
-        if (!bar) return
-        const height = Math.random() * 44 + 4
-        bar.style.height = `${height}px`
-      })
-      frameRef.current = requestAnimationFrame(animate)
-    }
-
-    frameRef.current = requestAnimationFrame(animate)
-    return () => cancelAnimationFrame(frameRef.current)
-  }, [isActive])
-
+export function HostOrb({ appState, className }: Props) {
   return (
-    <div className="flex items-center gap-1 h-14">
-      {Array.from({ length: barCount }).map((_, i) => (
-        <div
-          key={i}
-          ref={(el) => { barsRef.current[i] = el }}
-          className="w-1.5 rounded-sm bg-red-500 transition-none"
-          style={{ height: '4px' }}
-        />
-      ))}
+    <div className={className ?? 'w-72 h-72 md:w-80 md:h-80'}>
+      <Orb
+        colors={['#fbbf24', '#ef4444']}
+        agentState={appStateToAgent[appState]}
+        volumeMode="auto"
+      />
     </div>
   )
 }
 ```
 
-Note: Uses random animation values to simulate audio activity. In a future enhancement, pass a real `AnalyserNode` for frequency-driven animation. For the demo, random bars are visually convincing and avoid Web Audio API complexity during testing.
-
-- [ ] **Step 2: Commit**
+- [ ] **Step 2: Type-check the client**
 
 ```bash
-git add client/src/components/AudioVisualizer.tsx
-git commit -m "feat: add AudioVisualizer component with animated frequency bars"
+cd client && npx tsc -b
+```
+
+Expected: no errors.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add client/src/components/HostOrb.tsx
+git commit -m "feat: add HostOrb wrapper mapping AppState to 3D Orb agentState"
 ```
 
 ---
@@ -1696,7 +1797,7 @@ import { useGameEngine } from '../hooks/useGameEngine'
 import { useAudioPlayer } from '../hooks/useAudioPlayer'
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder'
 import { StatusIndicator } from './StatusIndicator'
-import { AudioVisualizer } from './AudioVisualizer'
+import { HostOrb } from './HostOrb'
 import { MicButton } from './MicButton'
 import type { AppState, NarrateResponse, StoryConfig } from '../types'
 
@@ -1794,7 +1895,7 @@ export function BroadcastStudio({ onEnding }: Props) {
         </div>
       </div>
 
-      <AudioVisualizer isActive={isPlaying} />
+      <HostOrb appState={appState} />
 
       <div className="flex flex-col items-center gap-4">
         <MicButton
@@ -1943,11 +2044,13 @@ git commit -m "feat: add EndingScreen with participant reply audio and replay op
 
 ---
 
-## Task 17: App.tsx Entry Point
+## Task 17: App.tsx Entry Point + Cleanup
 
 **Files:**
 - Modify: `client/src/App.tsx`
 - Modify: `client/src/main.tsx`
+- Modify: `client/src/index.css` (strip Vite-template leftovers)
+- Delete: `client/src/App.css`, `client/src/assets/{react.svg,vite.svg,hero.png}`, `client/public/icons.svg`
 
 - [ ] **Step 1: Replace App.tsx**
 
@@ -1988,9 +2091,9 @@ export default function App() {
 }
 ```
 
-- [ ] **Step 2: Update main.tsx**
+- [ ] **Step 2: Verify main.tsx (no change required)**
 
-Replace `client/src/main.tsx`:
+`client/src/main.tsx` should already match exactly:
 ```typescript
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -2004,19 +2107,47 @@ createRoot(document.getElementById('root')!).render(
 )
 ```
 
-- [ ] **Step 3: Verify dev build compiles**
+If it doesn't, replace it with the snippet above. Otherwise skip.
+
+- [ ] **Step 3: Strip Vite-template leftovers from `index.css`**
+
+Open `client/src/index.css` and **delete** the following blocks (they conflict with the fullscreen studio layout):
+- The legacy palette block under `:root` (lines starting with `--text:`, `--text-h:`, `--bg:`, `--code-bg:`, `--accent:`, `--accent-bg:`, `--accent-border:`, `--social-bg:`, `--shadow:`, `--sans:`, `--heading:`, `--mono:`, and the `font:` / `letter-spacing:` / `color-scheme:` / `color:` / `background:` / `font-synthesis:` / `text-rendering:` / `-webkit-font-smoothing:` / `-moz-osx-font-smoothing:` declarations and the `@media (max-width: 1024px)` inside `:root`)
+- The `@media (prefers-color-scheme: dark) { :root { … } #social .button-icon { … } }` block
+- The `#root { … }` block (width: 1126px, etc.)
+- The `body { margin: 0 }` rule (the shadcn `@layer base` rule below handles body)
+- The `h1, h2 { … }` rule, the `h1 { … }` rule, the `h2 { … }` rule, and the `p { margin: 0 }` rule
+- The `code, .counter { … }` and `code { … }` rules
+
+Keep:
+- `@import "tailwindcss";`, `@import "tw-animate-css";`, `@import "shadcn/tailwind.css";`, `@import "@fontsource-variable/geist";`
+- `@custom-variant dark (&:is(.dark *));`
+- The shadcn design-token `:root { --background, --foreground, --primary, … }` declarations
+- The `@theme inline { … }` block
+- The `.dark { … }` block
+- The `@layer base { … }` block at the end
+
+- [ ] **Step 4: Delete unused Vite-template assets**
+
+```powershell
+Remove-Item client/src/App.css, client/src/assets/react.svg, client/src/assets/vite.svg, client/src/assets/hero.png, client/public/icons.svg
+```
+
+(Keep `client/public/favicon.svg` — it's referenced by `index.html`.)
+
+- [ ] **Step 5: Verify build compiles**
 
 ```bash
 cd client && npm run build
 ```
 
-Expected: Build succeeds with no TypeScript errors.
+Expected: Build succeeds with no TypeScript errors and no unresolved asset imports.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add client/src/App.tsx client/src/main.tsx
-git commit -m "feat: wire App.tsx with BroadcastStudio and EndingScreen routing"
+git add -A
+git commit -m "feat: wire App.tsx with BroadcastStudio + EndingScreen, remove Vite-template leftovers"
 ```
 
 ---
