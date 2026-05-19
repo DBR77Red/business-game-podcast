@@ -27,7 +27,9 @@ app.route('/api/tts', ttsRoute)
 
 const port = Number(process.env.PORT ?? 3001)
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Start the HTTP server only when running directly (not when imported by tests).
+// Vitest sets process.env.VITEST='true', which is the most reliable cross-platform check.
+if (!process.env.VITEST) {
   serve({ fetch: app.fetch, port }, () => {
     console.log(`Server running on http://localhost:${port}`)
   })

@@ -1,6 +1,7 @@
 import { Suspense, useState } from 'react'
 import { BroadcastStudio } from './components/BroadcastStudio'
 import { EndingScreen } from './components/EndingScreen'
+import { ErrorScreen } from './components/ErrorScreen'
 import type { EndingPath } from './types'
 
 interface EndingState {
@@ -47,8 +48,10 @@ export default function App() {
   }
 
   return (
-    <Suspense fallback={<Booting />}>
-      <BroadcastStudio onEnding={handleEnding} />
-    </Suspense>
+    <ErrorScreen>
+      <Suspense fallback={<Booting />}>
+        <BroadcastStudio onEnding={handleEnding} />
+      </Suspense>
+    </ErrorScreen>
   )
 }
