@@ -3,7 +3,11 @@ import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js'
 
 export const transcribeRoute = new Hono()
 
-const elevenlabs = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY })
+let elevenlabs: ElevenLabsClient | null = null
+function getClient(): ElevenLabsClient {
+  if (!elevenlabs) elevenlabs = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY })
+  return elevenlabs
+}
 
 transcribeRoute.post('/', async (c) => {
   const body = await c.req.parseBody()
@@ -14,7 +18,7 @@ transcribeRoute.post('/', async (c) => {
   }
 
   try {
-    const result = await elevenlabs.speechToText.convert({
+    const result = await getClient().speechToText.convert({
       file,
       modelId: 'scribe_v1',
     })
