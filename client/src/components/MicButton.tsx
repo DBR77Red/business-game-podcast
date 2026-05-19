@@ -27,6 +27,10 @@ export function MicButton({ onPressStart, onPressEnd, isRecording, isDisabled }:
         e.preventDefault()
         handlePressEnd()
       }}
+      onTouchCancel={(e) => {
+        e.preventDefault()
+        handlePressEnd()
+      }}
       disabled={isDisabled}
       className={[
         'w-20 h-20 rounded-full border-2 flex items-center justify-center transition-all duration-150 select-none',
