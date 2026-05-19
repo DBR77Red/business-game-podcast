@@ -1,0 +1,17 @@
+{
+  "name": "business-game-podcast",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm:dev:client\" \"npm:dev:server\"",
+    "dev:client": "npm run dev --prefix client",
+    "dev:server": "npm run dev --prefix server",
+    "build:client": "npm run build --prefix client",
+    "build:server": "npm run build --prefix server",
+    "test:client": "npm test --prefix client",
+    "test:server": "npm test --prefix server",
+    "test": "npm run test:client && npm run test:server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
