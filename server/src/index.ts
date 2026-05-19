@@ -8,7 +8,16 @@ import { turnRoute } from './routes/turn.js'
 
 export const app = new Hono()
 
-app.use('/api/*', cors({ origin: 'http://localhost:5173' }))
+const allowedOrigins = (process.env.CORS_ORIGINS ?? 'http://localhost:5173')
+  .split(',')
+  .map((s) => s.trim())
+
+app.use(
+  '/api/*',
+  cors({
+    origin: (origin) => (origin && allowedOrigins.includes(origin) ? origin : null),
+  }),
+)
 
 app.route('/api/story', storyRoute)
 app.route('/api/transcribe', transcribeRoute)
