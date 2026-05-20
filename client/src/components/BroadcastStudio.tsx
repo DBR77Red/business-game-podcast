@@ -6,6 +6,7 @@ import { StatusIndicator } from './StatusIndicator'
 import { HostBars } from './HostBars'
 import { MicButton } from './MicButton'
 import { fetchStoryConfig } from '../lib/fetchStory'
+import { getAppPassword, setAppPassword } from '../lib/appPassword'
 import type { AppState, EndingPath, GameState, Language, Segment } from '../types'
 
 interface Props {
@@ -27,6 +28,8 @@ const labels: Record<Language, {
   goOnAir: string
   holdToSpeak: string
   pickLanguage: string
+  password: string
+  wrongPassword: string
 }> = {
   en: {
     welcomeTo: 'Welcome to',
@@ -34,6 +37,8 @@ const labels: Record<Language, {
     goOnAir: 'Go On Air',
     holdToSpeak: 'Hold to speak',
     pickLanguage: 'Choose language',
+    password: 'Access password',
+    wrongPassword: 'Wrong password — try again.',
   },
   pt: {
     welcomeTo: 'Bem-vindo ao',
@@ -41,6 +46,8 @@ const labels: Record<Language, {
     goOnAir: 'Entrar no Ar',
     holdToSpeak: 'Segure para falar',
     pickLanguage: 'Escolha o idioma',
+    password: 'Senha de acesso',
+    wrongPassword: 'Senha incorreta — tente de novo.',
   },
 }
 
@@ -50,8 +57,16 @@ export function BroadcastStudio({ language, onLanguageChange, onEnding }: Props)
   const { playTurn, analyserRef } = useAudioStream()
   const { startRecording, stopRecording, isRecording } = useVoiceRecorder()
   const [appState, setAppState] = useState<AppState>('IDLE')
+  const [password, setPasswordState] = useState(getAppPassword())
+  const [authError, setAuthError] = useState(false)
   const runningRef = useRef(false)
   const t = labels[language]
+
+  const handlePasswordChange = (value: string) => {
+    setPasswordState(value)
+    setAppPassword(value)
+    setAuthError(false)
+  }
 
   const runHostTurn = useCallback(
     async (playerReply: string, currentState: GameState) => {
@@ -82,7 +97,12 @@ export function BroadcastStudio({ language, onLanguageChange, onEnding }: Props)
         setAppState('PLAYER_TURN')
       } catch (err) {
         console.error('Host turn failed:', err)
-        setAppState('PLAYER_TURN')
+        if (String(err).includes('401')) {
+          setAuthError(true)
+          setAppState('IDLE')
+        } else {
+          setAppState('PLAYER_TURN')
+        }
       } finally {
         runningRef.current = false
       }
@@ -140,6 +160,17 @@ export function BroadcastStudio({ language, onLanguageChange, onEnding }: Props)
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="flex flex-col items-center gap-2">
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => handlePasswordChange(e.target.value)}
+            placeholder={t.password}
+            className="w-56 px-3 py-2 text-center text-sm bg-stone-900 border border-stone-700 rounded-md text-stone-200 placeholder:text-stone-600 focus:outline-none focus:border-stone-500"
+          />
+          {authError && <p className="text-xs text-red-400">{t.wrongPassword}</p>}
         </div>
 
         <button

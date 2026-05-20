@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { authHeaders } from '../lib/appPassword'
 
 export function useVoiceRecorder() {
   const [isRecording, setIsRecording] = useState(false)
@@ -29,7 +30,11 @@ export function useVoiceRecorder() {
           const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
           const formData = new FormData()
           formData.append('audio', blob, 'recording.webm')
-          const response = await fetch('/api/transcribe', { method: 'POST', body: formData })
+          const response = await fetch('/api/transcribe', {
+          method: 'POST',
+          headers: { ...authHeaders() },
+          body: formData,
+        })
           if (!response.ok) throw new Error(`transcribe failed: ${response.status}`)
           const json = await response.json()
           if (typeof json?.transcript !== 'string') throw new Error('transcribe returned no transcript')

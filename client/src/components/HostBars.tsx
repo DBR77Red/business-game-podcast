@@ -22,12 +22,18 @@ export function HostBars({ appState, analyserRef, bars = 8 }: Props) {
   const isWaiting = appState === 'PLAYER_TURN' || appState === 'PROCESSING'
 
   useEffect(() => {
+    // Allocate the frequency buffer once per effect run, not per frame.
+    let freqData: Uint8Array<ArrayBuffer> | null = null
+
     const animate = () => {
       const analyser = analyserRef?.current
       const els = barRefs.current
 
       if (analyser && isLive) {
-        const data = new Uint8Array(analyser.frequencyBinCount)
+        if (!freqData || freqData.length !== analyser.frequencyBinCount) {
+          freqData = new Uint8Array(analyser.frequencyBinCount)
+        }
+        const data = freqData
         analyser.getByteFrequencyData(data)
         // Sample evenly across the frequency bins, skipping the top quarter
         // (mostly noise/silence in speech).

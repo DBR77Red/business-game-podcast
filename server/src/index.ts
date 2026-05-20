@@ -14,6 +14,7 @@ import { storyRoute } from './routes/story.js'
 import { transcribeRoute } from './routes/transcribe.js'
 import { turnRoute } from './routes/turn.js'
 import { ttsRoute } from './routes/tts.js'
+import { requireAppPassword } from './middleware/requireAppPassword.js'
 
 export const app = new Hono()
 
@@ -27,6 +28,12 @@ app.use(
     origin: (origin) => (origin && allowedOrigins.includes(origin) ? origin : null),
   }),
 )
+
+// Gate the paid routes behind APP_PASSWORD (no-op when the env var is unset).
+// /api/story stays open so the client can load before the player authenticates.
+app.use('/api/transcribe', requireAppPassword)
+app.use('/api/turn', requireAppPassword)
+app.use('/api/tts', requireAppPassword)
 
 app.route('/api/story', storyRoute)
 app.route('/api/transcribe', transcribeRoute)

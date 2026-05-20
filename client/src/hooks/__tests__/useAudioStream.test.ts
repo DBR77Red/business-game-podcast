@@ -79,10 +79,9 @@ beforeEach(() => {
 })
 
 describe('useAudioStream', () => {
-  it('starts not playing and outputVolumeRef is 0', () => {
+  it('starts not playing', () => {
     const { result } = renderHook(() => useAudioStream())
     expect(result.current.isPlaying).toBe(false)
-    expect(result.current.outputVolumeRef.current).toBe(0)
   })
 
   it('resolves stateReady with the first SSE state event', async () => {

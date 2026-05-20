@@ -1,0 +1,3 @@
+in root folder, run
+
+npm run dev

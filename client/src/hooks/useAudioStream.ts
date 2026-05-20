@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GameState, Language, NarrateResponse } from '../types'
+import { authHeaders } from '../lib/appPassword'
 
 type TurnState = NarrateResponse['state']
 
@@ -48,14 +49,12 @@ async function* readSSE(body: ReadableStream<Uint8Array>): AsyncGenerator<SSEFra
 
 export function useAudioStream() {
   const [isPlaying, setIsPlaying] = useState(false)
-  const outputVolumeRef = useRef(0)
   const ctxRef = useRef<AudioContext | null>(null)
   // Exposed so visualisers (e.g. HostBars) can read frequency bins per frame.
   const analyserRef = useRef<AnalyserNode | null>(null)
   const queueRef = useRef<AudioBuffer[]>([])
   const playingRef = useRef(false)
   const abortRef = useRef<AbortController | null>(null)
-  const rafRef = useRef(0)
 
   const ensureContext = useCallback(() => {
     if (ctxRef.current) return ctxRef.current
@@ -65,22 +64,11 @@ export function useAudioStream() {
     analyser.connect(ctx.destination)
     ctxRef.current = ctx
     analyserRef.current = analyser
-
-    const data = new Uint8Array(analyser.frequencyBinCount)
-    const loop = () => {
-      analyser.getByteFrequencyData(data)
-      let sum = 0
-      for (let i = 0; i < data.length; i++) sum += data[i]
-      outputVolumeRef.current = sum / (data.length * 255)
-      rafRef.current = requestAnimationFrame(loop)
-    }
-    rafRef.current = requestAnimationFrame(loop)
     return ctx
   }, [])
 
   useEffect(
     () => () => {
-      cancelAnimationFrame(rafRef.current)
       ctxRef.current?.close()
     },
     [],
@@ -94,7 +82,6 @@ export function useAudioStream() {
     if (!buf) {
       playingRef.current = false
       setIsPlaying(false)
-      outputVolumeRef.current = 0
       return
     }
     playingRef.current = true
@@ -141,7 +128,7 @@ export function useAudioStream() {
         try {
           const res = await fetch('/api/turn', {
             method: 'POST',
-            headers: { 'content-type': 'application/json' },
+            headers: { 'content-type': 'application/json', ...authHeaders() },
             body: JSON.stringify(body),
             signal: abortRef.current!.signal,
           })
@@ -188,8 +175,7 @@ export function useAudioStream() {
     queueRef.current.length = 0
     playingRef.current = false
     setIsPlaying(false)
-    outputVolumeRef.current = 0
   }, [])
 
-  return { playTurn, stop, isPlaying, outputVolumeRef, analyserRef }
+  return { playTurn, stop, isPlaying, analyserRef }
 }

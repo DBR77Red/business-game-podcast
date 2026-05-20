@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { EndingPath, Language } from '../types'
+import { authHeaders } from '../lib/appPassword'
 
 const endingMeta: Record<Language, Record<EndingPath, { label: string; color: string }>> = {
   en: {
@@ -43,7 +44,7 @@ export function EndingScreen({ path, replyText, participantVoiceId, language, on
       try {
         const res = await fetch('/api/tts', {
           method: 'POST',
-          headers: { 'content-type': 'application/json' },
+          headers: { 'content-type': 'application/json', ...authHeaders() },
           body: JSON.stringify({ text: replyText, voiceId: participantVoiceId, language }),
         })
         if (cancelled || !res.ok) return
