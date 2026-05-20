@@ -54,13 +54,18 @@ turnRoute.post('/', async (c) => {
   const gameState = body.gameState
   const voiceId = body.voiceId ?? HOST_VOICE_ID
   const language: Language = body.language === 'pt' ? 'pt' : 'en'
+  const playerReply = body.playerReply?.trim()
+  const userContent = playerReply || 'Begin the episode.'
 
   const messages: Anthropic.MessageParam[] = [
+    ...(gameState.history[0]?.role === 'host'
+      ? [{ role: 'user' as const, content: 'Begin the episode.' }]
+      : []),
     ...gameState.history.map((turn) => ({
       role: (turn.role === 'host' ? 'assistant' : 'user') as 'user' | 'assistant',
       content: turn.text,
     })),
-    { role: 'user', content: body.playerReply ?? '' },
+    { role: 'user', content: userContent },
   ]
 
   return streamSSE(c, async (sse) => {

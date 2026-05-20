@@ -90,7 +90,7 @@ describe('useAudioStream', () => {
     let state: { segment: string; score: number; path: string | null } | null = null
     await act(async () => {
       const { stateReady } = result.current.playTurn({
-        gameState: { segment: 'IDLE', turnCount: 0, score: 0, path: null, history: [] },
+        gameState: { segment: 'IDLE', turnCount: 0, segmentTurnCount: 0, score: 0, path: null, history: [] },
         playerReply: '',
       })
       state = await stateReady
@@ -102,7 +102,7 @@ describe('useAudioStream', () => {
     const { result } = renderHook(() => useAudioStream())
     await act(async () => {
       const { done } = result.current.playTurn({
-        gameState: { segment: 'IDLE', turnCount: 0, score: 0, path: null, history: [] },
+        gameState: { segment: 'IDLE', turnCount: 0, segmentTurnCount: 0, score: 0, path: null, history: [] },
         playerReply: '',
       })
       await done
@@ -114,7 +114,7 @@ describe('useAudioStream', () => {
     const { result } = renderHook(() => useAudioStream())
     await act(async () => {
       const { stateReady } = result.current.playTurn({
-        gameState: { segment: 'IDLE', turnCount: 0, score: 0, path: null, history: [] },
+        gameState: { segment: 'IDLE', turnCount: 0, segmentTurnCount: 0, score: 0, path: null, history: [] },
         playerReply: 'hi',
       })
       await stateReady

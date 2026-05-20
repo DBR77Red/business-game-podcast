@@ -28,6 +28,7 @@ export interface ConversationTurn {
 export interface GameState {
   segment: Segment
   turnCount: number
+  segmentTurnCount: number
   score: number
   path: EndingPath | null
   history: ConversationTurn[]
