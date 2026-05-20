@@ -1,0 +1,28 @@
+1. Install the CLI + log in (opens a browser):
+  npm install -g @railway/cli
+  railway login
+
+  2. Initialize (pick a name when prompted):
+  railway init
+
+  3. Set environment variables — quote each KEY=VALUE so PowerShell doesn't choke on the =:
+  railway variables --set "ELEVENLABS_API_KEY=<your_key>"
+  railway variables --set "ANTHROPIC_API_KEY=<your_key>"
+  railway variables --set "HOST_VOICE_ID=onwK4e9ZLuTAKqWW03F9"
+  railway variables --set "PARTICIPANT_VOICE_ID=21m00Tcm4TlvDq8ikWAM"
+  railway variables --set "NODE_ENV=production"
+  (Or just paste them in the Railway dashboard → your service → Variables tab — easier than the CLI for
+   secrets.)
+
+  4. Deploy and get the URL:
+  railway up
+  railway domain
+
+  Notes that still apply:
+  - Don't set PORT — Railway injects it; the server reads process.env.PORT.
+  - Skip CORS_ORIGINS — the client is served from the same origin in production, so CORS never
+  triggers.
+  - The mic needs HTTPS, which Railway gives you automatically.
+
+  If railway up errors, paste the output here (you can use the ! railway logs form in the Claude prompt
+   if you want me to see it directly, or just copy-paste).

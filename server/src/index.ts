@@ -1,0 +1,62 @@
+import { config as loadDotenv } from 'dotenv'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+// Load the repo-root .env regardless of where the server is invoked from.
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+loadDotenv({ path: path.resolve(__dirname, '../../.env') })
+
+import { readFile } from 'node:fs/promises'
+import { Hono } from 'hono'
+import { cors } from 'hono/cors'
+import { serve } from '@hono/node-server'
+import { serveStatic } from '@hono/node-server/serve-static'
+import { storyRoute } from './routes/story.js'
+import { transcribeRoute } from './routes/transcribe.js'
+import { turnRoute } from './routes/turn.js'
+import { ttsRoute } from './routes/tts.js'
+import { requireAppPassword } from './middleware/requireAppPassword.js'
+
+export const app = new Hono()
+
+const allowedOrigins = (process.env.CORS_ORIGINS ?? 'http://localhost:5173')
+  .split(',')
+  .map((s) => s.trim())
+
+app.use(
+  '/api/*',
+  cors({
+    origin: (origin) => (origin && allowedOrigins.includes(origin) ? origin : null),
+  }),
+)
+
+// Gate the paid routes behind APP_PASSWORD (no-op when the env var is unset).
+// /api/story stays open so the client can load before the player authenticates.
+app.use('/api/transcribe', requireAppPassword)
+app.use('/api/turn', requireAppPassword)
+app.use('/api/tts', requireAppPassword)
+
+app.route('/api/story', storyRoute)
+app.route('/api/transcribe', transcribeRoute)
+app.route('/api/turn', turnRoute)
+app.route('/api/tts', ttsRoute)
+
+// In production, serve the built client (Railway runs `node server/dist/index.js`
+// from the repo root, so cwd is the repo root and client/dist is the build output).
+if (process.env.NODE_ENV === 'production') {
+  app.use('/*', serveStatic({ root: './client/dist' }))
+  // SPA fallback: any non-API, non-file route returns index.html.
+  app.get('*', async (c) => {
+    const html = await readFile(path.resolve(process.cwd(), 'client/dist/index.html'), 'utf-8')
+    return c.html(html)
+  })
+}
+
+const port = Number(process.env.PORT ?? 3001)
+
+// Start the HTTP server only when running directly (not when imported by tests).
+// Vitest sets process.env.VITEST='true', which is the most reliable cross-platform check.
+if (!process.env.VITEST) {
+  serve({ fetch: app.fetch, port }, () => {
+    console.log(`Server running on http://localhost:${port}`)
+  })
+}
