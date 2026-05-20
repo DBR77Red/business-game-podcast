@@ -5,9 +5,11 @@ import { fileURLToPath } from 'node:url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 loadDotenv({ path: path.resolve(__dirname, '../../.env') })
 
+import { readFile } from 'node:fs/promises'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { serve } from '@hono/node-server'
+import { serveStatic } from '@hono/node-server/serve-static'
 import { storyRoute } from './routes/story.js'
 import { transcribeRoute } from './routes/transcribe.js'
 import { turnRoute } from './routes/turn.js'
@@ -30,6 +32,17 @@ app.route('/api/story', storyRoute)
 app.route('/api/transcribe', transcribeRoute)
 app.route('/api/turn', turnRoute)
 app.route('/api/tts', ttsRoute)
+
+// In production, serve the built client (Railway runs `node server/dist/index.js`
+// from the repo root, so cwd is the repo root and client/dist is the build output).
+if (process.env.NODE_ENV === 'production') {
+  app.use('/*', serveStatic({ root: './client/dist' }))
+  // SPA fallback: any non-API, non-file route returns index.html.
+  app.get('*', async (c) => {
+    const html = await readFile(path.resolve(process.cwd(), 'client/dist/index.html'), 'utf-8')
+    return c.html(html)
+  })
+}
 
 const port = Number(process.env.PORT ?? 3001)
 
