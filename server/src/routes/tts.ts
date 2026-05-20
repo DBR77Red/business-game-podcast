@@ -11,10 +11,11 @@ function getClient(): ElevenLabsClient {
 }
 
 ttsRoute.post('/', async (c) => {
-  const body = await c.req.json<{ text?: string; voiceId?: string }>()
+  const body = await c.req.json<{ text?: string; voiceId?: string; language?: 'en' | 'pt' }>()
   if (!body.text || !body.voiceId) {
     return c.json({ error: 'text and voiceId are required' }, 400)
   }
+  const language: 'en' | 'pt' = body.language === 'pt' ? 'pt' : 'en'
 
   c.header('Content-Type', 'audio/mpeg')
 
@@ -24,6 +25,7 @@ ttsRoute.post('/', async (c) => {
         text: body.text!,
         modelId: 'eleven_turbo_v2_5',
         outputFormat: 'mp3_44100_128',
+        languageCode: language,
       })
       for await (const chunk of audioStream) {
         await s.write(chunk as Uint8Array)

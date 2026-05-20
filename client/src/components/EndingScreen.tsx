@@ -1,24 +1,39 @@
 import { useEffect, useRef, useState } from 'react'
-import type { EndingPath } from '../types'
+import type { EndingPath, Language } from '../types'
 
-const endingMeta: Record<EndingPath, { label: string; color: string }> = {
-  'breakout': { label: 'Breakout Success', color: 'text-green-400' },
-  'solid-win': { label: 'Solid Win', color: 'text-indigo-400' },
-  'partial': { label: 'Partial Result', color: 'text-amber-400' },
-  'setback': { label: 'Setback', color: 'text-red-400' },
+const endingMeta: Record<Language, Record<EndingPath, { label: string; color: string }>> = {
+  en: {
+    'breakout': { label: 'Breakout Success', color: 'text-green-400' },
+    'solid-win': { label: 'Solid Win', color: 'text-indigo-400' },
+    'partial': { label: 'Partial Result', color: 'text-amber-400' },
+    'setback': { label: 'Setback', color: 'text-red-400' },
+  },
+  pt: {
+    'breakout': { label: 'Sucesso Estrondoso', color: 'text-green-400' },
+    'solid-win': { label: 'Vitória Sólida', color: 'text-indigo-400' },
+    'partial': { label: 'Resultado Parcial', color: 'text-amber-400' },
+    'setback': { label: 'Revés', color: 'text-red-400' },
+  },
+}
+
+const endingLabels: Record<Language, { update: string; replay: string }> = {
+  en: { update: "Marco's update", replay: 'Play Again' },
+  pt: { update: 'Atualização do Marco', replay: 'Jogar de Novo' },
 }
 
 interface Props {
   path: EndingPath
   replyText: string
   participantVoiceId: string
+  language: Language
   onReplay: () => void
 }
 
-export function EndingScreen({ path, replyText, participantVoiceId, onReplay }: Props) {
+export function EndingScreen({ path, replyText, participantVoiceId, language, onReplay }: Props) {
   const [isPlaying, setIsPlaying] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
-  const meta = endingMeta[path]
+  const meta = endingMeta[language][path]
+  const t = endingLabels[language]
 
   useEffect(() => {
     let cancelled = false
@@ -29,7 +44,7 @@ export function EndingScreen({ path, replyText, participantVoiceId, onReplay }: 
         const res = await fetch('/api/tts', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ text: replyText, voiceId: participantVoiceId }),
+          body: JSON.stringify({ text: replyText, voiceId: participantVoiceId, language }),
         })
         if (cancelled || !res.ok) return
         const blob = await res.blob()
@@ -51,12 +66,12 @@ export function EndingScreen({ path, replyText, participantVoiceId, onReplay }: 
       audioRef.current?.pause()
       if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
-  }, [replyText, participantVoiceId])
+  }, [replyText, participantVoiceId, language])
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-[#0c0a09] gap-10 px-6">
       <div className="flex flex-col items-center gap-3 text-center">
-        <p className="text-xs tracking-[0.3em] uppercase text-stone-500">Marco's update</p>
+        <p className="text-xs tracking-[0.3em] uppercase text-stone-500">{t.update}</p>
         <h2 className={`text-2xl font-bold ${meta.color}`}>{meta.label}</h2>
         {isPlaying && (
           <div className="flex gap-1 mt-2" aria-hidden="true">
@@ -74,7 +89,7 @@ export function EndingScreen({ path, replyText, participantVoiceId, onReplay }: 
         onClick={onReplay}
         className="px-8 py-3 border border-stone-600 text-stone-400 text-sm tracking-[0.2em] uppercase hover:border-stone-400 hover:text-stone-200 transition-colors"
       >
-        Play Again
+        {t.replay}
       </button>
     </div>
   )

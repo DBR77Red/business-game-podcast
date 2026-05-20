@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { GameState, NarrateResponse } from '../types'
+import type { GameState, Language, NarrateResponse } from '../types'
 
 type TurnState = NarrateResponse['state']
 
@@ -7,6 +7,7 @@ interface PlayTurnBody {
   gameState: GameState
   playerReply: string
   voiceId?: string
+  language?: Language
 }
 
 interface PlayHandle {
@@ -49,6 +50,7 @@ export function useAudioStream() {
   const [isPlaying, setIsPlaying] = useState(false)
   const outputVolumeRef = useRef(0)
   const ctxRef = useRef<AudioContext | null>(null)
+  // Exposed so visualisers (e.g. HostBars) can read frequency bins per frame.
   const analyserRef = useRef<AnalyserNode | null>(null)
   const queueRef = useRef<AudioBuffer[]>([])
   const playingRef = useRef(false)
@@ -189,5 +191,5 @@ export function useAudioStream() {
     outputVolumeRef.current = 0
   }, [])
 
-  return { playTurn, stop, isPlaying, outputVolumeRef }
+  return { playTurn, stop, isPlaying, outputVolumeRef, analyserRef }
 }

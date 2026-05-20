@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { streamSSE } from 'hono/streaming'
 import Anthropic from '@anthropic-ai/sdk'
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js'
-import { buildSystemPrompt, type ServerGameState } from '../prompts/hostSystemPrompt.js'
+import { buildSystemPrompt, type ServerGameState, type Language } from '../prompts/hostSystemPrompt.js'
 import { SentenceBuffer } from '../lib/sentenceBuffer.js'
 
 export const turnRoute = new Hono()
@@ -20,11 +20,12 @@ function getElevenLabs(): ElevenLabsClient {
   return elevenlabs
 }
 
-async function ttsBase64(text: string, voiceId: string): Promise<string> {
+async function ttsBase64(text: string, voiceId: string, language: Language): Promise<string> {
   const audioStream = await getElevenLabs().textToSpeech.stream(voiceId, {
     text,
     modelId: 'eleven_turbo_v2_5',
     outputFormat: 'mp3_44100_128',
+    languageCode: language,
   })
   const chunks: Uint8Array[] = []
   for await (const chunk of audioStream) chunks.push(chunk as Uint8Array)
@@ -43,6 +44,7 @@ turnRoute.post('/', async (c) => {
     gameState?: ServerGameState
     playerReply?: string
     voiceId?: string
+    language?: Language
   }>()
 
   if (!body.gameState) {
@@ -51,6 +53,7 @@ turnRoute.post('/', async (c) => {
 
   const gameState = body.gameState
   const voiceId = body.voiceId ?? HOST_VOICE_ID
+  const language: Language = body.language === 'pt' ? 'pt' : 'en'
 
   const messages: Anthropic.MessageParam[] = [
     ...gameState.history.map((turn) => ({
@@ -68,7 +71,7 @@ turnRoute.post('/', async (c) => {
     const flushSentencesAsAudio = async (sentences: string[]) => {
       for (const sentence of sentences) {
         sentSentences.push(sentence)
-        const audio = await ttsBase64(sentence, voiceId)
+        const audio = await ttsBase64(sentence, voiceId, language)
         await sse.writeSSE({ event: 'audio', data: audio })
       }
     }
@@ -78,7 +81,7 @@ turnRoute.post('/', async (c) => {
         model: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6',
         max_tokens: 600,
         stream: true,
-        system: buildSystemPrompt(gameState),
+        system: buildSystemPrompt(gameState, language),
         messages,
       })
 

@@ -28,6 +28,7 @@ describe('EndingScreen', () => {
         path="breakout"
         replyText="It worked!"
         participantVoiceId="voice-id"
+        language="en"
         onReplay={vi.fn()}
       />,
     )
@@ -41,6 +42,7 @@ describe('EndingScreen', () => {
         path="solid-win"
         replyText="Solid!"
         participantVoiceId="voice-id"
+        language="en"
         onReplay={onReplay}
       />,
     )

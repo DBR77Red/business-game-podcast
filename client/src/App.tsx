@@ -2,7 +2,7 @@ import { Suspense, useState } from 'react'
 import { BroadcastStudio } from './components/BroadcastStudio'
 import { EndingScreen } from './components/EndingScreen'
 import { ErrorScreen } from './components/ErrorScreen'
-import type { EndingPath } from './types'
+import type { EndingPath, Language } from './types'
 
 interface EndingState {
   path: EndingPath
@@ -28,6 +28,7 @@ function Booting() {
 }
 
 export default function App() {
+  const [language, setLanguage] = useState<Language>('en')
   const [ending, setEnding] = useState<EndingState | null>(null)
 
   const handleEnding = (path: EndingPath, replyText: string, participantVoiceId: string) => {
@@ -42,6 +43,7 @@ export default function App() {
         path={ending.path}
         replyText={ending.replyText}
         participantVoiceId={ending.participantVoiceId}
+        language={language}
         onReplay={handleReplay}
       />
     )
@@ -50,7 +52,7 @@ export default function App() {
   return (
     <ErrorScreen>
       <Suspense fallback={<Booting />}>
-        <BroadcastStudio onEnding={handleEnding} />
+        <BroadcastStudio language={language} onLanguageChange={setLanguage} onEnding={handleEnding} />
       </Suspense>
     </ErrorScreen>
   )

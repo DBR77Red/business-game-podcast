@@ -11,6 +11,8 @@ export type Segment =
 
 export type EndingPath = 'breakout' | 'solid-win' | 'partial' | 'setback'
 
+export type Language = 'en' | 'pt'
+
 export type AppState =
   | 'IDLE'
   | 'NARRATOR_SPEAKING'
@@ -51,8 +53,10 @@ export interface StoryConfig {
   participant: {
     name: string
     voiceId: string
-    problemDescription: string
-    replyTexts: Record<EndingPath, string>
+    /** Problem description text per language */
+    problemDescription: Record<Language, string>
+    /** Reply texts per language per ending path */
+    replyTexts: Record<Language, Record<EndingPath, string>>
   }
   scoringThresholds: {
     breakout: number
